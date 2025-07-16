@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DrinkingBuddy - Stay Close. Party Hard.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet CSS for maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Paddle JavaScript -->
+    <script src="https://cdn.paddle.com/paddle/paddle.js"></script>
+    
+    <!-- Supabase Client -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gold: '#d4af37',
+                        neon: '#ccff00',
+                        electric: '#7df9ff',
+                        magenta: '#ff00ff',
+                        dark: '#121212',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #121212;
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .map-container {
+            height: 60vh;
+            background: #1e1e1e;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .friend-marker {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #d4af37;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #121212;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+        }
+        
+        .friend-marker img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .friend-marker.active {
+            border-color: #ccff00;
+            box-shadow: 0 0 10px #ccff00;
+        }
+        
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #1e1e1e;
+            height: 70px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #333;
+            z-index: 100;
+        }
+        
+        .tab-icon {
+            color: #555;
+            font-size: 24px;
+            transition: all 0.2s ease;
+        }
+        
+        .tab-icon.active {
+            color: #d4af37;
+            transform: translateY(-5px);
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff00ff;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .chat-bubble {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        
+        .chat-bubble.me {
+            background: #d4af37;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .chat-bubble.friend {
+            background: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .slide-up {
+            animation: slideUp 0.3s ease forwards;
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(212, 175, 55, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(212, 175, 55, 0);
+            }
+        }
+
+        /* Vibe mode styles */
+        .vibe-mode {
+            transition: all 0.3s ease;
+        }
+
+        .vibe-energetic {
+            animation: vibeGlow 2s ease-in-out infinite alternate;
+        }
+
+        .vibe-chill {
+            filter: hue-rotate(180deg) saturate(0.8);
+        }
+
+        .vibe-late-night {
+            filter: contrast(1.2) brightness(0.8);
+        }
+
+        @keyframes vibeGlow {
+            from {
+                box-shadow: 0 0 5px var(--vibe-primary, #d4af37);
+            }
+            to {
+                box-shadow: 0 0 20px var(--vibe-primary, #d4af37), 0 0 30px var(--vibe-secondary, #ccff00);
+            }
+        }
+
+        /* Real map container */
+        #map-container {
+            height: 100%;
+            width: 100%;
+            border-radius: 0;
+        }
+
+        /* Loading spinner */
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #d4af37;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Gold badge styles */
+        .gold-badge {
+            background: linear-gradient(45deg, #d4af37, #ffd700);
+            color: #121212;
+            font-weight: bold;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        /* Admin crown styles */
+        .admin-crown {
+            animation: crownGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes crownGlow {
+            from {
+                text-shadow: 0 0 5px #d4af37;
+            }
+            to {
+                text-shadow: 0 0 15px #d4af37, 0 0 25px #ffd700;
+            }
+        }
+
+        /* Premium user indicators */
+        .premium-glow {
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+            border: 1px solid rgba(212, 175, 55, 0.5);
+        }
+    </style>
+</head>
+<body class="relative">
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="absolute inset-0 bg-dark z-50 flex flex-col items-center justify-center p-6">
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-gold mb-2">DrinkingBuddy</h1>
+            <p class="text-gray-400">Stay Close. Party Hard.</p>
+        </div>
+        
+        <div class="w-full max-w-xs">
+            <div class="bg-dark-800 rounded-xl p-6 shadow-lg border border-gray-800">
+                <h2 class="text-xl font-semibold mb-6 text-center">Get Started</h2>
+                
+                <button id="google-auth" class="w-full bg-white text-dark font-medium py-3 px-4 rounded-lg mb-3 flex items-center justify-center">
+                    <i class="fab fa-google text-red-500 mr-2"></i>
+                    Continue with Google
+                </button>
+                
+                <div class="relative my-4">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-700"></div>
+                    </div>
+                    <div class="relative flex justify-center">
+                        <span class="px-2 bg-dark text-gray-400 text-sm">or</span>
+                    </div>
+                </div>
+                
+                <input type="email" id="email" placeholder="Email" class="w-full bg-gray-900 text-white rounded-lg px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-gold">
+                <input type="password" id="password" placeholder="Password" class="w-full bg-gray-900 text-white rounded-lg px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-gold">
+                
+                <button id="email-auth" class="w-full bg-gold text-dark font-medium py-3 px-4 rounded-lg mb-4">
+                    Continue with Email
+                </button>
+                
+                <p class="text-gray-400 text-sm text-center">By continuing, you agree to our Terms and Privacy Policy</p>
+            </div>
+            
+            <p class="text-gray-400 text-center mt-6">
+                Already have an account? <button id="switch-to-login" class="text-gold">Log In</button>
+            </p>
+        </div>
+    </div>
+    
+    <!-- Main App Container -->
+    <div id="app-container" class="h-full flex flex-col hidden">
+        <!-- Header -->
+        <header class="bg-dark border-b border-gray-800 p-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <img src="https://ui-avatars.com/api/?name=DB&background=d4af37&color=121212" alt="Logo" class="w-8 h-8 rounded-full mr-2">
+                <h1 class="text-xl font-bold">DrinkingBuddy</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="profile-btn" class="relative">
+                    <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Profile" class="w-8 h-8 rounded-full border border-gold">
+                    <span class="absolute bottom-0 right-0 w-3 h-3 bg-neon rounded-full border border-dark"></span>
+                </button>
+            </div>
+        </header>
+        
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto pb-20">
+            <!-- Map View -->
+            <div id="map-view" class="map-container">
+                <!-- Real Leaflet Map Container -->
+                <div id="map-container"></div>
+                
+                <!-- Map controls -->
+                <div class="absolute bottom-4 right-4 flex flex-col space-y-2">
+                    <button id="center-location-btn" class="bg-dark text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg border border-gray-700">
+                        <i class="fas fa-location-arrow text-electric"></i>
+                    </button>
+                    <button id="toggle-map-style" class="bg-dark text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg border border-gray-700">
+                        <i class="fas fa-layer-group text-gold"></i>
+                    </button>
+                </div>
+                
+                <!-- Group info -->
+                <div class="group-info absolute top-4 left-4 bg-dark bg-opacity-90 rounded-xl p-3 shadow-lg border border-gray-700">
+                    <div class="flex items-center mb-2">
+                        <h3 class="font-semibold">No Group Active</h3>
+                        <span class="ml-2 text-xs bg-gray-600 text-gray-300 px-2 py-1 rounded-full">Inactive</span>
+                    </div>
+                    <button onclick="app.showCreateGroupDialog()" class="text-xs text-gold hover:underline">
+                        Create or Join Group
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Friends List -->
+            <div class="friends-section p-4">
+                <h2 class="text-lg font-semibold mb-3 flex items-center">
+                    <i class="fas fa-users mr-2 text-gold"></i>
+                    Your Squad
+                    <button onclick="app.showAddFriendDialog()" class="ml-auto text-electric text-sm">
+                        <i class="fas fa-plus mr-1"></i>Add Friend
+                    </button>
+                </h2>
+                
+                <div class="friends-grid grid grid-cols-2 gap-3">
+                    <!-- Friends will be loaded dynamically -->
+                    <div class="col-span-2 text-center text-gray-400 py-8">
+                        <i class="fas fa-user-friends text-4xl mb-4 opacity-50"></i>
+                        <p>No friends added yet</p>
+                        <p class="text-sm">Add friends to see them on the map!</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="quick-actions-section p-4">
+                <h2 class="text-lg font-semibold mb-3 flex items-center">
+                    <i class="fas fa-bolt mr-2 text-neon"></i>
+                    Quick Actions
+                </h2>
+                
+                <div class="grid grid-cols-4 gap-2">
+                    <button data-action="group-qr" class="bg-gray-900 rounded-xl p-3 flex flex-col items-center">
+                        <div class="w-10 h-10 bg-gold bg-opacity-20 rounded-full flex items-center justify-center text-gold mb-1">
+                            <i class="fas fa-qrcode"></i>
+                        </div>
+                        <span class="text-xs">Group QR</span>
+                    </button>
+                    
+                    <button data-action="group-chat" class="bg-gray-900 rounded-xl p-3 flex flex-col items-center">
+                        <div class="w-10 h-10 bg-electric bg-opacity-20 rounded-full flex items-center justify-center text-electric mb-1">
+                            <i class="fas fa-comment-dots"></i>
+                        </div>
+                        <span class="text-xs">Group Chat</span>
+                    </button>
+                    
+                    <button data-action="vibe-mode" class="bg-gray-900 rounded-xl p-3 flex flex-col items-center">
+                        <div class="w-10 h-10 bg-magenta bg-opacity-20 rounded-full flex items-center justify-center text-magenta mb-1">
+                            <i class="fas fa-umbrella-beach"></i>
+                        </div>
+                        <span class="text-xs">Vibe Mode</span>
+                    </button>
+                    
+                    <button data-action="safety" class="bg-gray-900 rounded-xl p-3 flex flex-col items-center">
+                        <div class="w-10 h-10 bg-neon bg-opacity-20 rounded-full flex items-center justify-center text-neon mb-1">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <span class="text-xs">Safety</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Chat View (hidden by default) -->
+            <div id="chat-view" class="hidden absolute inset-0 bg-dark z-40 flex flex-col">
+                <div class="chat-header p-4 border-b border-gray-800 flex items-center">
+                    <button id="back-to-map" class="mr-3">
+                        <i class="fas fa-arrow-left text-gold"></i>
+                    </button>
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-gold rounded-full flex items-center justify-center mr-2">
+                            <i class="fas fa-users text-dark text-sm"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-medium">Loading...</h3>
+                            <p class="text-xs text-gray-400">Please wait</p>
+                        </div>
+                    </div>
+                    <button class="ml-auto text-electric">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-4 space-y-3 flex flex-col" id="chat-messages">
+                    <!-- Messages will be loaded here -->
+                </div>
+                
+                <div class="p-3 border-t border-gray-800">
+                    <div class="flex items-center">
+                        <button onclick="mapManager.sendLocationMessage()" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center mr-2">
+                            <i class="fas fa-map-marker-alt text-electric"></i>
+                        </button>
+                        <input type="text" placeholder="Message..." class="chat-message-input flex-1 bg-gray-800 rounded-full px-4 py-2 focus:outline-none focus:ring-1 focus:ring-gold">
+                        <button class="chat-send-button w-10 h-10 rounded-full bg-gold text-dark flex items-center justify-center ml-2">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Profile View (hidden by default) -->
+            <div id="profile-view" class="hidden absolute inset-0 bg-dark z-40 flex flex-col">
+                <div class="p-4 border-b border-gray-800 flex items-center">
+                    <button id="back-from-profile" class="mr-3">
+                        <i class="fas fa-arrow-left text-gold"></i>
+                    </button>
+                    <h3 class="font-medium">Your Profile</h3>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-4">
+                    <div class="flex flex-col items-center mb-6">
+                        <div class="relative mb-4">
+                            <img src="https://randomuser.me/api/portraits/women/44.jpg" class="w-24 h-24 rounded-full border-4 border-gold">
+                            <button class="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-electric text-dark flex items-center justify-center">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                        </div>
+                        <h2 class="text-xl font-bold">Jessica Parker</h2>
+                        <p class="text-gray-400 text-sm">@jessparty</p>
+                        
+                        <div class="mt-3 flex items-center bg-gold bg-opacity-20 text-gold px-3 py-1 rounded-full text-xs">
+                            <i class="fas fa-crown mr-1"></i>
+                            Gold Member
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-900 rounded-xl p-4 mb-4">
+                        <h3 class="font-medium mb-3 flex items-center">
+                            <i class="fas fa-user-cog text-gold mr-2"></i>
+                            Account Settings
+                        </h3>
+                        
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium">Location Sharing</p>
+                                    <p class="text-xs text-gray-400">Share your location with friends</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" name="location_sharing" class="sr-only peer settings-toggle" checked>
+                                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold"></div>
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium">Burn After Party</p>
+                                    <p class="text-xs text-gray-400">Auto-delete location after 6 hours</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" name="burn_after_party" class="sr-only peer settings-toggle" checked>
+                                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-magenta"></div>
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium">Allow Tag Back</p>
+                                    <p class="text-xs text-gray-400">Friends can request your location</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" name="allow_tag_back" class="sr-only peer settings-toggle" checked>
+                                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-electric"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-900 rounded-xl p-4 mb-4">
+                        <h3 class="font-medium mb-3 flex items-center">
+                            <i class="fas fa-music text-neon mr-2"></i>
+                            Music Status
+                        </h3>
+                        
+                        <div class="flex items-center space-x-3">
+                            <img src="https://i.scdn.co/image/ab67616d00001e02ff9ca10b55ce82ae553c8228" class="w-12 h-12 rounded">
+                            <div class="flex-1">
+                                <p class="font-medium">Blinding Lights</p>
+                                <p class="text-xs text-gray-400">The Weeknd</p>
+                            </div>
+                            <button class="text-electric">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-900 rounded-xl p-4">
+                        <h3 class="font-medium mb-3 flex items-center">
+                            <i class="fas fa-shield-alt text-magenta mr-2"></i>
+                            Safety Features
+                        </h3>
+                        
+                        <button data-action="emergency-contacts" class="w-full bg-magenta bg-opacity-20 text-magenta rounded-lg py-3 px-4 flex items-center justify-between mb-3">
+                            <div class="flex items-center">
+                                <i class="fas fa-phone-alt mr-2"></i>
+                                <span>Emergency Contacts</span>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                        
+                        <button data-action="safety-checkin" class="w-full bg-magenta bg-opacity-20 text-magenta rounded-lg py-3 px-4 flex items-center justify-between">
+                            <div class="flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                <span>Safety Check-In</span>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Admin View (hidden by default, only visible to admins) -->
+            <div id="admin-view" class="hidden absolute inset-0 bg-dark z-40 flex flex-col">
+                <div class="p-4 border-b border-gray-800 flex items-center">
+                    <button id="back-from-admin" class="mr-3">
+                        <i class="fas fa-arrow-left text-gold"></i>
+                    </button>
+                    <h3 class="font-medium flex items-center">
+                        <i class="fas fa-crown text-gold mr-2"></i>
+                        Admin Panel
+                    </h3>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-4">
+                    <!-- Admin Stats Cards -->
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-gray-900 rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-gold" id="total-users">-</div>
+                            <div class="text-sm text-gray-400">Total Users</div>
+                        </div>
+                        <div class="bg-gray-900 rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-electric" id="active-groups">-</div>
+                            <div class="text-sm text-gray-400">Active Groups</div>
+                        </div>
+                        <div class="bg-gray-900 rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-neon" id="premium-users">-</div>
+                            <div class="text-sm text-gray-400">Premium Users</div>
+                        </div>
+                        <div class="bg-gray-900 rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-magenta" id="revenue-today">$0</div>
+                            <div class="text-sm text-gray-400">Revenue Today</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Admin Actions -->
+                    <div class="bg-gray-900 rounded-xl p-4 mb-4">
+                        <h3 class="font-medium mb-3 flex items-center">
+                            <i class="fas fa-cog text-gold mr-2"></i>
+                            Admin Actions
+                        </h3>
+                        
+                        <div class="space-y-3">
+                            <button onclick="adminManager.viewAllUsers()" class="w-full bg-gray-800 hover:bg-gray-700 rounded-lg py-3 px-4 flex items-center justify-between transition-colors">
+                                <div class="flex items-center">
+                                    <i class="fas fa-users mr-3 text-electric"></i>
+                                    <span>Manage Users</span>
+                                </div>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            
+                            <button onclick="adminManager.viewSystemLogs()" class="w-full bg-gray-800 hover:bg-gray-700 rounded-lg py-3 px-4 flex items-center justify-between transition-colors">
+                                <div class="flex items-center">
+                                    <i class="fas fa-list-alt mr-3 text-neon"></i>
+                                    <span>System Logs</span>
+                                </div>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            
+                            <button onclick="adminManager.viewReports()" class="w-full bg-gray-800 hover:bg-gray-700 rounded-lg py-3 px-4 flex items-center justify-between transition-colors">
+                                <div class="flex items-center">
+                                    <i class="fas fa-flag mr-3 text-magenta"></i>
+                                    <span>User Reports</span>
+                                </div>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            
+                            <button onclick="adminManager.generateReport()" class="w-full bg-gold bg-opacity-20 text-gold hover:bg-opacity-30 rounded-lg py-3 px-4 flex items-center justify-between transition-colors">
+                                <div class="flex items-center">
+                                    <i class="fas fa-chart-bar mr-3"></i>
+                                    <span>Generate Analytics Report</span>
+                                </div>
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Activity -->
+                    <div class="bg-gray-900 rounded-xl p-4">
+                        <h3 class="font-medium mb-3 flex items-center">
+                            <i class="fas fa-clock text-electric mr-2"></i>
+                            Recent Activity
+                        </h3>
+                        
+                        <div id="admin-recent-activity" class="space-y-3 text-sm">
+                            <div class="text-gray-400 text-center py-4">
+                                Loading recent activity...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Tab Bar -->
+        <div class="tab-bar">
+            <button class="tab-icon active" data-tab="map">
+                <i class="fas fa-map"></i>
+            </button>
+            <button class="tab-icon" data-tab="friends">
+                <i class="fas fa-users"></i>
+            </button>
+            <button class="tab-icon relative" data-tab="chat">
+                <i class="fas fa-comment-alt"></i>
+                <span class="notification-badge">3</span>
+            </button>
+            <button class="tab-icon" data-tab="quick">
+                <i class="fas fa-bolt"></i>
+            </button>
+            <button id="admin-tab" class="tab-icon hidden" data-tab="admin">
+                <i class="fas fa-crown text-gold"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Ad Banner (hidden by default) -->
+    <div id="ad-banner" class="hidden w-full bg-gray-800 p-2 text-center text-xs text-gray-400 border-t border-gray-700">
+        Advertisement - Upgrade to Gold to remove ads
+    </div>
+
+    <!-- Pricing Modal (hidden by default) -->
+    <div id="pricing-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-dark rounded-xl p-6 max-w-sm w-full border border-gray-800">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-bold text-gold mb-2">
+                    <i class="fas fa-crown mr-2"></i>
+                    Upgrade to Gold
+                </h2>
+                <p class="text-gray-400">Remove ads and get exclusive features</p>
+            </div>
+            
+            <div class="space-y-4 mb-6">
+                <button onclick="paymentManager.startSubscription('monthly')" class="w-full bg-gray-900 hover:bg-gray-800 border border-gray-700 rounded-lg p-4 text-left transition-colors">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="font-semibold">Monthly</div>
+                            <div class="text-sm text-gray-400">$1.30/month</div>
+                        </div>
+                        <div class="text-gold font-bold">$1.30</div>
+                    </div>
+                </button>
+                
+                <button onclick="paymentManager.startSubscription('yearly')" class="w-full bg-gold bg-opacity-20 border border-gold rounded-lg p-4 text-left hover:bg-opacity-30 transition-colors">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="font-semibold text-gold">Yearly</div>
+                            <div class="text-sm text-gold opacity-80">$13/year (Save 17%)</div>
+                        </div>
+                        <div class="text-gold font-bold">$13</div>
+                    </div>
+                    <div class="text-xs text-gold mt-1 font-medium">
+                        <i class="fas fa-star mr-1"></i>
+                        Best Value
+                    </div>
+                </button>
+            </div>
+            
+            <div class="text-xs text-gray-400 text-center mb-4">
+                ✨ Ad-free experience<br>
+                👑 Gold badge<br>
+                🎵 Spotify integration<br>
+                📱 Premium features
+            </div>
+            
+            <div class="flex space-x-3">
+                <button onclick="paymentManager.hidePricingModal()" class="flex-1 bg-gray-800 text-white rounded-lg py-3 px-4">
+                    Cancel
+                </button>
+            </div>
+            
+            <p class="text-xs text-gray-500 text-center mt-4">
+                Secure payment powered by Paddle
+            </p>
+        </div>
+    </div>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- App JavaScript Modules -->
+    <script type="module" src="js/app.js"></script>
+    
+    <script>
+        // Basic error handling and loading state
+        window.addEventListener('error', function(e) {
+            console.error('App error:', e.error);
+        });
+        
+        // Show loading state
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if required dependencies are loaded
+            if (typeof window.supabase === 'undefined') {
+                console.error('Supabase not loaded');
+                document.body.innerHTML = `
+                    <div class="fixed inset-0 bg-dark flex items-center justify-center">
+                        <div class="text-center text-white">
+                            <h1 class="text-2xl font-bold text-red-500 mb-4">Configuration Required</h1>
+                            <p class="mb-4">Please set up your Supabase configuration:</p>
+                            <ol class="text-left max-w-md mx-auto space-y-2">
+                                <li>1. Create a Supabase project at <a href="https://supabase.com" class="text-gold">supabase.com</a></li>
+                                <li>2. Copy your project URL and anon key</li>
+                                <li>3. Update js/config.js with your credentials</li>
+                                <li>4. Run the database schema in your Supabase SQL editor</li>
+                            </ol>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (typeof L === 'undefined') {
+                console.error('Leaflet not loaded');
+                return;
+            }
+            
+            console.log('All dependencies loaded successfully');
+        });
+    </script>
+</body>
+</html>

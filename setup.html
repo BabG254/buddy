@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DrinkingBuddy - Setup Instructions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: #121212; color: white; font-family: 'Inter', sans-serif; }
+        .step { background: #1e1e1e; border: 1px solid #333; }
+        .accent { color: #d4af37; }
+        .highlight { background: #d4af37; color: #121212; }
+    </style>
+</head>
+<body class="min-h-screen p-4">
+    <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold accent mb-2">DrinkingBuddy Setup</h1>
+            <p class="text-gray-400">Follow these steps to get your app running</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Backend Setup -->
+            <div class="step rounded-xl p-6">
+                <h2 class="text-2xl font-bold accent mb-4">
+                    <i class="fas fa-server mr-2"></i>Backend Setup
+                </h2>
+                
+                <div class="space-y-4">
+                    <div class="border-l-4 border-blue-500 pl-4">
+                        <h3 class="font-semibold">1. Create Supabase Project</h3>
+                        <p class="text-sm text-gray-400">Go to <a href="https://supabase.com" class="accent underline" target="_blank">supabase.com</a> and create a free account</p>
+                    </div>
+                    
+                    <div class="border-l-4 border-green-500 pl-4">
+                        <h3 class="font-semibold">2. Get Credentials</h3>
+                        <p class="text-sm text-gray-400">Project Settings → API → Copy URL and anon key</p>
+                    </div>
+                    
+                    <div class="border-l-4 border-yellow-500 pl-4">
+                        <h3 class="font-semibold">3. Update Config</h3>
+                        <p class="text-sm text-gray-400">Edit <code class="bg-gray-800 px-2 py-1 rounded">js/config.js</code> with your credentials</p>
+                    </div>
+                    
+                    <div class="border-l-4 border-purple-500 pl-4">
+                        <h3 class="font-semibold">4. Run Database Schema</h3>
+                        <p class="text-sm text-gray-400">Copy <code class="bg-gray-800 px-2 py-1 rounded">database/schema.sql</code> to Supabase SQL Editor</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Frontend Setup -->
+            <div class="step rounded-xl p-6">
+                <h2 class="text-2xl font-bold accent mb-4">
+                    <i class="fas fa-globe mr-2"></i>Frontend Setup
+                </h2>
+                
+                <div class="space-y-4">
+                    <div class="border-l-4 border-pink-500 pl-4">
+                        <h3 class="font-semibold">1. Install Dependencies</h3>
+                        <code class="bg-gray-800 p-2 rounded block text-sm">npm install</code>
+                    </div>
+                    
+                    <div class="border-l-4 border-cyan-500 pl-4">
+                        <h3 class="font-semibold">2. Start Development Server</h3>
+                        <code class="bg-gray-800 p-2 rounded block text-sm">npm start</code>
+                    </div>
+                    
+                    <div class="border-l-4 border-orange-500 pl-4">
+                        <h3 class="font-semibold">3. Open Browser</h3>
+                        <p class="text-sm text-gray-400">Navigate to <code class="bg-gray-800 px-2 py-1 rounded">http://localhost:3000</code></p>
+                    </div>
+                    
+                    <div class="border-l-4 border-red-500 pl-4">
+                        <h3 class="font-semibold">4. Test Features</h3>
+                        <p class="text-sm text-gray-400">Create account, enable location, add friends!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Commands -->
+        <div class="step rounded-xl p-6 mt-6">
+            <h2 class="text-2xl font-bold accent mb-4">
+                <i class="fas fa-terminal mr-2"></i>Quick Commands
+            </h2>
+            
+            <div class="grid md:grid-cols-3 gap-4">
+                <div class="bg-gray-800 p-4 rounded-lg">
+                    <h3 class="font-semibold mb-2">Development</h3>
+                    <code class="text-sm">npm run dev</code>
+                    <p class="text-xs text-gray-400 mt-1">Start with live reload</p>
+                </div>
+                
+                <div class="bg-gray-800 p-4 rounded-lg">
+                    <h3 class="font-semibold mb-2">Production</h3>
+                    <code class="text-sm">npm run deploy</code>
+                    <p class="text-xs text-gray-400 mt-1">Deploy to Vercel</p>
+                </div>
+                
+                <div class="bg-gray-800 p-4 rounded-lg">
+                    <h3 class="font-semibold mb-2">Simple Server</h3>
+                    <code class="text-sm">python -m http.server 3000</code>
+                    <p class="text-xs text-gray-400 mt-1">Basic HTTP server</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature Checklist -->
+        <div class="step rounded-xl p-6 mt-6">
+            <h2 class="text-2xl font-bold accent mb-4">
+                <i class="fas fa-check-circle mr-2"></i>Feature Checklist
+            </h2>
+            
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <h3 class="font-semibold mb-3 text-green-400">✅ Implemented</h3>
+                    <ul class="space-y-1 text-sm">
+                        <li><i class="fas fa-check text-green-400 mr-2"></i>Real-time Authentication</li>
+                        <li><i class="fas fa-check text-green-400 mr-2"></i>Live Location Tracking</li>
+                        <li><i class="fas fa-check text-green-400 mr-2"></i>Group Chat System</li>
+                        <li><i class="fas fa-check text-green-400 mr-2"></i>Friend Management</li>
+                        <li><i class="fas fa-check text-green-400 mr-2"></i>Group Creation/Joining</li>
+                        <li><i class="fas fa-check text-green-400 mr-2"></i>Safety Features</li>
+                        <li><i class="fas fa-check text-green-400 mr-2"></i>Vibe Mode</li>
+                        <li><i class="fas fa-check text-green-400 mr-2"></i>Mobile Responsive</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold mb-3 text-yellow-400">🔧 Ready to Extend</h3>
+                    <ul class="space-y-1 text-sm">
+                        <li><i class="fas fa-plus text-yellow-400 mr-2"></i>Push Notifications</li>
+                        <li><i class="fas fa-plus text-yellow-400 mr-2"></i>Spotify Integration</li>
+                        <li><i class="fas fa-plus text-yellow-400 mr-2"></i>Image/GIF Sharing</li>
+                        <li><i class="fas fa-plus text-yellow-400 mr-2"></i>Uber/Lyft Integration</li>
+                        <li><i class="fas fa-plus text-yellow-400 mr-2"></i>Payment Processing</li>
+                        <li><i class="fas fa-plus text-yellow-400 mr-2"></i>Ad Integration</li>
+                        <li><i class="fas fa-plus text-yellow-400 mr-2"></i>Voice Messages</li>
+                        <li><i class="fas fa-plus text-yellow-400 mr-2"></i>Event Planning</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Launch Button -->
+        <div class="text-center mt-8">
+            <a href="index.html" class="highlight px-8 py-3 rounded-lg font-bold text-lg inline-block hover:bg-yellow-500 transition-colors">
+                <i class="fas fa-rocket mr-2"></i>Launch DrinkingBuddy
+            </a>
+        </div>
+
+        <div class="text-center mt-4 text-gray-400 text-sm">
+            <p>Need help? Check the <a href="README.md" class="accent underline">README.md</a> for detailed instructions</p>
+        </div>
+    </div>
+</body>
+</html>

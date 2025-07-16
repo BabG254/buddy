@@ -1,0 +1,39 @@
+{
+  "name": "drinkingbuddy",
+  "version": "1.0.0",
+  "description": "Stay Close. Party Hard. - Real-time location sharing app for friends",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server -p 3000 -c-1",
+    "dev": "npx live-server --port=3000",
+    "build": "echo 'No build process needed for vanilla JS'",
+    "deploy": "vercel --prod"
+  },
+  "keywords": [
+    "location-sharing",
+    "real-time",
+    "social",
+    "mobile-app",
+    "party",
+    "friends",
+    "supabase",
+    "leaflet"
+  ],
+  "author": "DrinkingBuddy Team",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "live-server": "^1.2.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "your-repo-url"
+  },
+  "homepage": "https://drinkingbuddy.app",
+  "bugs": {
+    "url": "your-repo-url/issues"
+  }
+}
