@@ -1,0 +1,12 @@
+node_modules/
+.git/
+*.log
+.env
+.env.local
+.env.production
+verify-migration.js
+MIGRATION_COMPLETE.md
+ADMIN_SETUP.md
+README.md
+.vscode/
+.DS_Store
