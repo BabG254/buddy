@@ -2,3 +2,4 @@
 /database
 /MIGRATION_COMPLETE.md
 /verify-migration.js
+.vercel
